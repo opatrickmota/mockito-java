@@ -92,25 +92,4 @@ public class FinalizarLeilaoServiceTest {
         return lista;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }
