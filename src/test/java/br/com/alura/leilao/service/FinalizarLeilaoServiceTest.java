@@ -22,10 +22,13 @@ public class FinalizarLeilaoServiceTest {
     @Mock
     private LeilaoDao leilaoDao;
 
+    @Mock
+    private EnviadorDeEmails enviadorDeEmails;
+
     @BeforeEach
     public void beforeEach(){
         MockitoAnnotations.initMocks(this); // vai ler as anotações do mockito, e inicializar a partir dessa classe
-        this.service = new FinalizarLeilaoService(leilaoDao);
+        this.service = new FinalizarLeilaoService(leilaoDao, enviadorDeEmails);
     }
 
     @Test
@@ -41,6 +44,36 @@ public class FinalizarLeilaoServiceTest {
         Assert.assertEquals(new BigDecimal("900"), leilao.getLanceVencedor().getValor());
 
         Mockito.verify(leilaoDao).salvar(leilao);
+    }
+
+    @Test
+    void deveriaEnviarEmailParaVencedorDoLeilao(){
+        List<Leilao> leiloes = leiloes();
+
+        Mockito.when(leilaoDao.buscarLeiloesExpirados()).thenReturn(leiloes); // quando chamar o método vai retornar a lista com nossos dados preenchidos, pois o mockito em si retorna a lista vazia
+
+        service.finalizarLeiloesExpirados();
+
+        Leilao leilao = leiloes.get(0);
+        Lance lanceVencedor = leilao.getLanceVencedor();
+
+        Mockito.verify(enviadorDeEmails).enviarEmailVencedorLeilao(lanceVencedor);
+    }
+
+    @Test
+    void naoDeveriaEnviarEmailParaVencedorDoLeilaoEmCasoDeErroAoEncerrarLeilao(){
+        List<Leilao> leiloes = leiloes();
+
+        Mockito.when(leilaoDao.buscarLeiloesExpirados()).thenReturn(leiloes); // quando chamar o método vai retornar a lista com nossos dados preenchidos, pois o mockito em si retorna a lista vazia
+
+        Mockito.when(leilaoDao.salvar(Mockito.any())).thenThrow(RuntimeException.class); // lançando uma exception
+
+        try{
+            service.finalizarLeiloesExpirados();
+            Mockito.verifyNoInteractions(enviadorDeEmails); // nao deve ser chamado se houver algum erro ao finalizar leiloes expirados
+        }catch (Exception e){}
+
+
     }
 
     private List<Leilao> leiloes(){
